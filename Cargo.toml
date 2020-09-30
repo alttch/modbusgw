@@ -1,0 +1,11 @@
+[package]
+name = "modbusgw"
+version = "1.0.0"
+authors = ["Sergei S. <div@altertech.com>"]
+edition = "2018"
+
+[dependencies]
+serial = "0.4.0"
+lazy_static = "1.4.0"
+crc16 = "0.4.0"
+argparse = "0.2.2"
