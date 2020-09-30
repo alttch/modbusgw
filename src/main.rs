@@ -116,7 +116,7 @@ fn main() {
         let rx = DC.rx.lock().unwrap();
         let task: Task = rx.recv().unwrap();
         port.write(&task.frame).unwrap();
-        let mut buf = [0; 3];
+        let mut buf = [0u8; 3];
         let mut response = Vec::new();
         let func = task.frame[1];
         if !task.broadcast {
