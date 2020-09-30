@@ -190,7 +190,7 @@ fn main() {
                         let end = resp.len() - 2;
                         let crc = State::<MODBUS>::calculate(&resp[..end]);
                         if crc == u16::from_le_bytes([resp[len - 2], resp[len - 1]]) {
-                            response.extend_from_slice(&(len as u16).to_be_bytes());
+                            response.extend_from_slice(&(end as u16).to_be_bytes());
                             response.extend_from_slice(&resp[..end]);
                         } else {
                             eprintln!("unit {} reply crc error", unit_id);
