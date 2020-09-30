@@ -48,25 +48,41 @@ fn main() {
     let mut parity = "N".to_owned();
     let mut stop_bits = "1".to_owned();
     let mut timeout = "2".to_owned();
+    let mut delay = "0.02".to_owned();
     let mut ap = ArgumentParser::new();
     ap.set_description(&greeting);
     ap.refer(&mut port_dev)
         .add_option(&["-p", "--port"], Store, "serial port device (REQUIRED)")
         .required();
-    ap.refer(&mut listen)
-        .add_option(&["-l", "--listen"], Store, "host:port to listen");
-    ap.refer(&mut baud_rate)
-        .add_option(&["-b", "--baud-rate"], Store, "serial port baud rate");
-    ap.refer(&mut char_size)
-        .add_option(&["--char-size"], Store, "serial port char size");
+    ap.refer(&mut listen).add_option(
+        &["-l", "--listen"],
+        Store,
+        "host:port to listen (default: 0.0.0.0:5502)",
+    );
+    ap.refer(&mut baud_rate).add_option(
+        &["-b", "--baud-rate"],
+        Store,
+        "serial port baud rate (default: 9600)",
+    );
+    ap.refer(&mut char_size).add_option(
+        &["--char-size"],
+        Store,
+        "serial port char size (default: 8)",
+    );
     ap.refer(&mut parity)
-        .add_option(&["--parity"], Store, "serial port parity");
-    ap.refer(&mut stop_bits)
-        .add_option(&["--stop-bits"], Store, "serial port stop bits");
+        .add_option(&["--parity"], Store, "serial port parity (default: N)");
+    ap.refer(&mut stop_bits).add_option(
+        &["--stop-bits"],
+        Store,
+        "serial port stop bits (default: 1)",
+    );
     ap.refer(&mut timeout)
-        .add_option(&["--timeout"], Store, "serial port timeout");
+        .add_option(&["--timeout"], Store, "serial port timeout (default: 1s)");
+    ap.refer(&mut delay)
+        .add_option(&["--delay"], Store, "delay between frames (default: 0.02s)");
     ap.parse_args_or_exit();
     drop(ap);
+    let frame_delay = Duration::from_millis((delay.parse::<f32>().unwrap() * 1000f32) as u64);
     let serial_band_rate = match baud_rate.as_str() {
         "110" => serial::Baud110,
         "300" => serial::Baud300,
@@ -141,6 +157,7 @@ fn main() {
             }
         }
         task.reply_ch.send(response).unwrap();
+        thread::sleep(frame_delay);
     });
     println!("Modbus gateway tcp:{} <-> rtu:{}", listen, port_dev);
     for stream in listener.incoming() {
