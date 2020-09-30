@@ -29,7 +29,8 @@ release_x86_64:
 	cargo build --target x86_64-unknown-linux-musl --release
 
 release_armhf:
-	cargo build --target arm-unknown-linux-musleabihf --release
+	cross build --target arm-unknown-linux-musleabihf --release
+	/usr/bin/arm-linux-gnueabihf-strip ./target/arm-unknown-linux-musleabihf/release/modbusgw
 
 release_win64:
 	cargo build --target x86_64-pc-windows-gnu --release
