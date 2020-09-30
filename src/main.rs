@@ -12,7 +12,7 @@ use std::time::Duration;
 use argparse::{ArgumentParser, Store};
 
 const HOMEPAGE: &str = "https://github.com/alttch/modbusgw";
-const VERSION: &str = "1.0.0";
+const VERSION: &str = "1.0.1";
 
 struct Task {
     frame: Vec<u8>,
