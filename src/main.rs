@@ -134,10 +134,10 @@ fn main() {
         port.write(&task.frame).unwrap();
         let mut buf = [0u8; 3];
         let mut response = Vec::new();
-        let func = task.frame[1];
         if !task.broadcast {
             let len = port.read(&mut buf).unwrap_or(0);
             if len == 3 {
+                let func = task.frame[1];
                 let remaining = match func == buf[1] {
                     true => match func {
                         1 | 2 | 3 | 4 => buf[2] + 2,
