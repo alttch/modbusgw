@@ -5,6 +5,7 @@ use crc16::*;
 use serial::prelude::*;
 use std::io::{Read, Write};
 use std::net::TcpListener;
+use std::process;
 use std::sync::{mpsc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -131,9 +132,12 @@ fn main() {
     thread::spawn(move || loop {
         let rx = DC.rx.lock().unwrap();
         let task: Task = rx.recv().unwrap();
-        port.write(&task.frame).unwrap();
-        let mut buf = [0u8; 3];
         let mut response = Vec::new();
+        port.write(&task.frame).unwrap_or_else(|e| {
+            println!("port error: {}", e);
+            process::exit(1);
+        });
+        let mut buf = [0u8; 3];
         if !task.broadcast {
             let len = port.read(&mut buf).unwrap_or(0);
             if len == 3 {
