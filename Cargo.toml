@@ -1,6 +1,6 @@
 [package]
 name = "modbusgw"
-version = "1.0.2"
+version = "1.0.3"
 authors = ["Serhij S. <div@altertech.com>"]
 edition = "2018"
 

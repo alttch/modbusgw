@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 
-use crc16::*;
+use crc16::{State, MODBUS};
 use serial::prelude::*;
 use std::io::{Read, Write};
 use std::net::TcpListener;
@@ -40,10 +40,11 @@ lazy_static! {
     static ref DC: DataChannel = DataChannel::new();
 }
 
+#[allow(clippy::too_many_lines)]
 fn main() {
     let greeting = format!("TCP<->RTU Modbus Gateway v{} ({})", VERSION, HOMEPAGE);
     let mut listen = "0.0.0.0:5502".to_owned();
-    let mut port_dev = "".to_owned();
+    let mut port_dev = String::new();
     let mut baud_rate = "9600".to_owned();
     let mut char_size = "8".to_owned();
     let mut parity = "N".to_owned();
@@ -83,6 +84,7 @@ fn main() {
         .add_option(&["--delay"], Store, "delay between frames (default: 0.02s)");
     ap.parse_args_or_exit();
     drop(ap);
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     let frame_delay = Duration::from_millis((delay.parse::<f32>().unwrap() * 1000f32) as u64);
     let serial_band_rate = match baud_rate.as_str() {
         "110" => serial::Baud110,
@@ -133,7 +135,7 @@ fn main() {
         let rx = DC.rx.lock().unwrap();
         let task: Task = rx.recv().unwrap();
         let mut response = Vec::new();
-        port.write(&task.frame).unwrap_or_else(|e| {
+        port.write_all(&task.frame).unwrap_or_else(|e| {
             println!("port error: {}", e);
             process::exit(1);
         });
@@ -142,13 +144,14 @@ fn main() {
             let len = port.read(&mut buf).unwrap_or(0);
             if len == 3 {
                 let func = task.frame[1];
-                let remaining = match func == buf[1] {
-                    true => match func {
+                let remaining = if func == buf[1] {
+                    match func {
                         1 | 2 | 3 | 4 => buf[2] + 2,
                         5 | 6 | 15 | 16 => 5,
                         _ => 0,
-                    },
-                    false => 2,
+                    }
+                } else {
+                    2
                 };
                 if remaining > 0 {
                     let mut rest = vec![0u8; remaining as usize];
@@ -181,7 +184,7 @@ fn main() {
                 }
                 let proto_id = u16::from_be_bytes([buf[2], buf[3]]);
                 let length = u16::from_be_bytes([buf[4], buf[5]]);
-                if proto_id != 0 || length < 6 || length > 250 {
+                if proto_id != 0 || !(6..=250).contains(&length) {
                     eprintln!("client frame broken");
                     return;
                 }
@@ -196,7 +199,7 @@ fn main() {
                     .send(Task {
                         frame: rtu_frame,
                         reply_ch: tx,
-                        broadcast: broadcast,
+                        broadcast,
                     })
                     .unwrap();
                 let resp = rx.recv().unwrap();
@@ -211,6 +214,7 @@ fn main() {
                         let end = resp.len() - 2;
                         let crc = State::<MODBUS>::calculate(&resp[..end]);
                         if crc == u16::from_le_bytes([resp[len - 2], resp[len - 1]]) {
+                            #[allow(clippy::cast_possible_truncation)]
                             response.extend_from_slice(&(end as u16).to_be_bytes());
                             response.extend_from_slice(&resp[..end]);
                         } else {
@@ -225,10 +229,8 @@ fn main() {
                     eprintln!("unit {} no response", unit_id);
                     response_error!(0x0B);
                 }
-                if response.len() > 0 {
-                    if stream.write(&response).is_err() {
-                        return;
-                    };
+                if !response.is_empty() && stream.write(&response).is_err() {
+                    return;
                 }
             }
         });
